@@ -37,8 +37,10 @@ import android.widget.TextView;
 import androidx.core.content.FileProvider;
 
 import com.hardcodedjoy.appbase.IntentUtil;
+import com.hardcodedjoy.appbase.activity.PermissionUtil;
 import com.hardcodedjoy.appbase.contentview.CvTMLL;
 import com.hardcodedjoy.appbase.gui.GuiLinker;
+import com.hardcodedjoy.audioinput.AudioCable;
 import com.hardcodedjoy.audioinput.MicInput;
 import com.hardcodedjoy.noisoid.Noisoid;
 import com.hardcodedjoy.noisoid.Source;
@@ -50,7 +52,7 @@ import java.io.File;
 @SuppressLint("ViewConstructor")
 public class CvMain extends CvTMLL {
 
-    static private final int BUFFER_MILLIS = 100;
+    static private final int BUFFER_MILLIS = 150;
     static private final int BUFFER_COUNT = 2;
     static private final int NUM_CHANNELS = 2;
     static private final int SAMPLE_RATE = 48000;
@@ -75,13 +77,13 @@ public class CvMain extends CvTMLL {
         super.show();
         // add code to run every time this ContentView appears on screen
 
-        LinearLayout llContent = findViewById(R.id.ll_content);
-        llContent.removeAllViews();
-        inflate(getActivity(), R.layout.main, llContent);
+        LinearLayout ll = findViewById(R.id.appbase_ll_content);
+        ll.removeAllViews();
+        inflate(getActivity(), R.layout.main, ll);
 
         tvStatus = findViewById(R.id.tv_status);
 
-        GuiLinker.setOnClickListenerToAllButtons(llContent, view -> {
+        GuiLinker.setOnClickListenerToAllButtons(ll, view -> {
             int id = view.getId();
             if(id == R.id.btn_rec) { onRec(); }
             if(id == R.id.btn_stop) { onStop(); }
@@ -90,7 +92,9 @@ public class CvMain extends CvTMLL {
         });
     }
 
-    private void onRec() { runWithPermission(Manifest.permission.RECORD_AUDIO, this::doRec); }
+    private void onRec() {
+        PermissionUtil.runWithPermission(Manifest.permission.RECORD_AUDIO, this::doRec);
+    }
 
     private void doRec() {
         if(wavFileWriter != null) { wavFileWriter.close(); }
@@ -124,12 +128,22 @@ public class CvMain extends CvTMLL {
         bufferIndex = 0;
         indexInBuffer = 0;
 
-        micInput.connectOutputTo(this::onMicSample);
+        micInput.connectOutputTo(new AudioCable() {
+            @Override
+            public void send(float[] sample) { onMicSample(sample); }
+            @Override
+            public void endOfFrame() {}
+            @Override
+            public void endOfStream() {}
+        });
         micInput.start();
     }
 
-    private void onMicSample(float f) {
-        buffer[bufferIndex][indexInBuffer++] = f * 50;
+    private void onMicSample(float[] sample) {
+        for(float f : sample) {
+            buffer[bufferIndex][indexInBuffer++] = f * 50;
+        }
+
         indexInBuffer %= buffer[0].length;
 
         if(indexInBuffer == 0) { // that buffer full

@@ -58,13 +58,16 @@ public class WavFileHeader {
 	static private String subchunk2IdErr = "WavHeader.fromFile() subchunk2Id ERR";
 
 	public WavFileHeader(int sampleRate, int numChannels, int bitsPerSample) {
+		this.sampleRate = sampleRate;
+		this.numChannels = numChannels;
+		this.bitsPerSample = bitsPerSample;
+
 		subchunk1Size = 16; // 16
 		audioFormat = 1; // PCM
 		subchunk2Size = 0;
 
-		this.sampleRate = sampleRate;
-		this.numChannels = numChannels;
-		this.bitsPerSample = bitsPerSample;
+		// 32-bit must be float:
+		if(this.bitsPerSample == 32) { this.audioFormat = 3; } // WAVE_FORMAT_IEEE_FLOAT
 
 		this.blockAlign = this.numChannels * this.bitsPerSample/8;
 		this.byteRate = this.sampleRate * this.blockAlign;

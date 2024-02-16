@@ -28,64 +28,278 @@ package com.hardcodedjoy.wavfileio;
 
 public class FloatBufferToByteBuffer {
 
+    // non-swap:
+    // 0, 1, 2, 3, 4, 5, 6, 7, 8, ...
+    //0, 0+1, 2, 2+1, 4, 4+1
+    // swap:
+    // 1, 0, 3, 2, 5, 4, 7, 6, 9, ...
+    //0+1, 0, 2+1, 2, 4+1, 4
+
+    // i+1, i-1, i+1, i-1, ...
+
     static public void convert(float[] samples, int offset, int len, boolean swapLR, int bitsPerSample, byte[] byteBuffer) {
+        switch (bitsPerSample) {
+            case 32: convert32(samples, offset, len, swapLR, byteBuffer); break;
+            case 24: convert24(samples, offset, len, swapLR, byteBuffer); break;
+            case 16: convert16(samples, offset, len, swapLR, byteBuffer); break;
+            case 12: convert12(samples, offset, len, swapLR, byteBuffer); break;
+            case 10: convert10(samples, offset, len, swapLR, byteBuffer); break;
+            case  8: convert8 (samples, offset, len, swapLR, byteBuffer); break;
+            case  7: convert7 (samples, offset, len, swapLR, byteBuffer); break;
+            case  6: convert6 (samples, offset, len, swapLR, byteBuffer); break;
+            case  5: convert5 (samples, offset, len, swapLR, byteBuffer); break;
+            case  4: convert4 (samples, offset, len, swapLR, byteBuffer); break;
+            case  3: convert3 (samples, offset, len, swapLR, byteBuffer); break;
+            case  2: convert2 (samples, offset, len, swapLR, byteBuffer); break;
+            case  1: convert1 (samples, offset, len, swapLR, byteBuffer); break;
+            default: break;
+        }
+    }
+
+    static public void convert32(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
         long sample;
         float fSample;
-
         int end = offset + len;
-
-        // non-swap:
-        // 0, 1, 2, 3, 4, 5, 6, 7, 8, ...
-        //0, 0+1, 2, 2+1, 4, 4+1
-        // swap:
-        // 1, 0, 3, 2, 5, 4, 7, 6, 9, ...
-        //0+1, 0, 2+1, 2, 4+1, 4
-
-        // i+1, i-1, i+1, i-1, ...
-
         int v = 0; // index variance
         if(swapLR) { v = 1; }
 
         for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = limit(samples[i+v]);
 
-            fSample = samples[i+v];
+            //sample = (long)(fSample * 2147483647); // 32-bit integer
+            sample = Float.floatToIntBits(fSample); // 32-bit float
 
-			/*if(fSample > 1.0f) {
-				fSample = 1.0f;
-			}
-			if(fSample < -1.0f) {
-				fSample = -1.0f;
-			}*/
-
-            if(fSample > 0.99999f) { fSample = 0.99999f; }
-            if(fSample < -0.99999f) { fSample = -0.99999f; }
-
-            if(bitsPerSample==32) {
-
-                sample = (long)(fSample * 2147483647);
-                byteBuffer[j++] = (byte)sample; sample = sample >> 8;
-                byteBuffer[j++] = (byte)sample; sample = sample >> 8;
-                byteBuffer[j++] = (byte)sample; sample = sample >> 8;
-                byteBuffer[j++] = (byte)sample;
-            }
-            else if(bitsPerSample==24) {
-
-                sample = (long)(fSample * 8388607);
-                byteBuffer[j++] = (byte)sample; sample = sample >> 8;
-                byteBuffer[j++] = (byte)sample; sample = sample >> 8;
-                byteBuffer[j++] = (byte)sample;
-            }
-            else if(bitsPerSample==16) {
-
-                sample = (long)(fSample * 32767);
-                byteBuffer[j++] = (byte)sample; sample = sample >> 8;
-                byteBuffer[j++] = (byte)sample;
-            }
-            else if(bitsPerSample==8) {
-
-                sample = ((long)(fSample * 127)) + 127;
-                byteBuffer[j++] = (byte)sample;
-            }
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample;
         }
+    }
+
+    static public void convert24(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = limit(samples[i+v]);
+            sample = (long)(fSample * 8388607);
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert16(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = limit(samples[i+v]);
+            sample = (long)(fSample * 32767);
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert12(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.000244141f; // * 1 / 4096
+            fSample = limit(fSample);
+
+            sample = (long)(fSample * 32767);
+
+            // remove 4 bits from 16:
+            sample = sample >> 4;
+            sample = sample << 4;
+
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert10(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.000976562f; // * 1 / 1024
+            fSample = limit(fSample);
+
+            sample = (long)(fSample * 32767);
+
+            // remove 6 bits from 16:
+            sample = sample >> 6;
+            sample = sample << 6;
+
+            byteBuffer[j++] = (byte)sample; sample = sample >> 8;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert8(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.00390625f; // * 1 / 256
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert7(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.0078125f; // * 1 / 128
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            sample = (sample) / 2;
+            sample *= 2;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert6(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.015625f; // * 1 / 64
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            sample = (sample) / 4;
+            sample *= 4;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert5(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.03125f; // * 1 / 32
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            sample = (sample) / 8;
+            sample *= 8;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert4(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.0625f; // * 1 / 16
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            sample = (sample) / 16;
+            sample *= 16;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert3(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.125f; // * 1 / 8
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            sample = (sample) / 32;
+            sample *= 32;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert2(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.25f; // * 1 / 4
+            fSample = limit(fSample);
+            sample = ((long)(fSample * 127)) + 127;
+            sample = (sample) / 64;
+            sample *= 64;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static public void convert1(float[] samples, int offset, int len, boolean swapLR, byte[] byteBuffer) {
+        long sample;
+        float fSample;
+        int end = offset + len;
+        int v = 0; // index variance
+        if(swapLR) { v = 1; }
+
+        for(int i=offset, j=0; i<end; i++, v=-v) {
+            fSample = samples[i+v];
+            fSample += ((float)Math.random() - 0.5f) * 0.5f; // * 1 / 2
+            fSample = limit(fSample);
+            sample = (fSample < 0) ? 0 : 255;
+            byteBuffer[j++] = (byte)sample;
+        }
+    }
+
+    static private float limit(float f) {
+        // if(fSample > 1.0f) { fSample = 1.0f }
+        // if(fSample < -1.0f) { fSample = -1.0f }
+
+        if(f >  0.99999f) { return   0.99999f; }
+        //noinspection ManualMinMaxCalculation
+        if(f < -0.99999f) { return  -0.99999f; }
+        return f;
     }
 }
